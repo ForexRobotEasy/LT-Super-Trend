@@ -1,0 +1,89 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                            LT Super Trend.mq5   |
+//|                            Copyright 2022, Forex Robot Easy Team |
+//|                                           https://forexroboteasy.com |
+//+------------------------------------------------------------------+
+
+// Define the input parameters
+input int SuperTrendPeriod = 10;
+input double SuperTrendMultiplier = 2.0;
+
+// Define global variables
+double SuperTrendUpper[];
+double SuperTrendLower[];
+bool isBullishTrend[];
+bool isBearishTrend[];
+
+//+------------------------------------------------------------------+
+//| Custom indicator initialization function                         |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+    // Set indicator buffers
+    SetIndexBuffer(0, SuperTrendUpper);
+    SetIndexBuffer(1, SuperTrendLower);
+
+    // Set indicator labels
+    SetIndexLabel(0, 'Super Trend Upper');
+    SetIndexLabel(1, 'Super Trend Lower');
+
+    // Set indicator styles
+    SetIndexStyle(0, DRAW_LINE);
+    SetIndexStyle(1, DRAW_LINE);
+
+    // Set indicator colors
+    SetIndexColor(0, clrGreen);
+    SetIndexColor(1, clrRed);
+
+    // Initialize trend variables
+    ArrayInitialize(isBullishTrend, false);
+    ArrayInitialize(isBearishTrend, false);
+
+    return(INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Custom indicator iteration function                              |
+//+------------------------------------------------------------------+
+int OnCalculate(const int rates_total,
+                const int prev_calculated,
+                const datetime &time[],
+                const double &open[],
+                const double &high[],
+                const double &low[],
+                const double &close[],
+                const long &tick_volume[],
+                const long &volume[],
+                const int &spread[])
+{
+    // Calculate Super Trend
+    for(int i = prev_calculated; i < rates_total; i++)
+    {
+        double atr = iATR(Symbol(), PERIOD_CURRENT, SuperTrendPeriod, i);
+
+        if(close[i] > SuperTrendUpper[i-1] || (close[i-1] > SuperTrendUpper[i-1] && close[i] <= SuperTrendUpper[i-1]))
+        {
+            SuperTrendUpper[i] = close[i] - atr * SuperTrendMultiplier;
+            SuperTrendLower[i] = close[i] - atr * SuperTrendMultiplier * 2;
+            isBullishTrend[i] = true;
+            isBearishTrend[i] = false;
+        }
+        else if(close[i] < SuperTrendLower[i-1] || (close[i-1] < SuperTrendLower[i-1] && close[i] >= SuperTrendLower[i-1]))
+        {
+            SuperTrendUpper[i] = close[i] + atr * SuperTrendMultiplier * 2;
+            SuperTrendLower[i] = close[i] + atr * SuperTrendMultiplier;
+            isBullishTrend[i] = false;
+            isBearishTrend[i] = true;
+        }
+        else
+        {
+            SuperTrendUpper[i] = SuperTrendUpper[i-1];
+            SuperTrendLower[i] = SuperTrendLower[i-1];
+            isBullishTrend[i] = isBullishTrend[i-1];
+            isBearishTrend[i] = isBearishTrend[i-1];
+        }
+    }
+
+    return(rates_total);
+}
